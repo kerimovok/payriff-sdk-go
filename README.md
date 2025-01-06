@@ -15,9 +15,7 @@ Initialize the SDK with your merchant credentials:
 ### Default Configuration
 
 ```go
-import (
-	"payriff-sdk-go/pkg/payriff"
-)
+import "github.com/kerimovok/payriff-sdk-go/payriff"
 
 payriff := payriff.NewSDK(payriff.Config{})
 ```
