@@ -19,15 +19,13 @@ import (
 	"payriff-sdk-go/pkg/payriff"
 )
 
-payriff := payriff.NewSDK()
+payriff := payriff.NewSDK(payriff.Config{})
 ```
 
 ### Custom Configuration
 
 ```go
-import (
-	"payriff-sdk-go/pkg/payriff"
-)
+import "github.com/kerimovok/payriff-sdk-go/payriff"
 
 payriff := payriff.NewSDK(payriff.Config{
 	// optional, defaults to https://api.payriff.com/api/v3
