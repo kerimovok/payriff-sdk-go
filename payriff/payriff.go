@@ -38,7 +38,11 @@ type SDK struct {
 // Language represents supported language codes
 type Language string
 
+// Currency represents supported currency codes
 type Currency string
+
+// Operation represents supported payment operations
+type Operation string
 
 const (
 	LanguageAZ Language = "AZ"
@@ -51,9 +55,6 @@ const (
 	CurrencyUSD Currency = "USD"
 	CurrencyEUR Currency = "EUR"
 )
-
-// Operation represents supported payment operations
-type Operation string
 
 const (
 	OperationPurchase Operation = "PURCHASE"
@@ -119,16 +120,6 @@ type OrderInfo struct {
 	Transactions  []Transaction `json:"transactions"`
 }
 
-// Response represents the generic API response structure
-type Response struct {
-	Code            string          `json:"code"`
-	Message         string          `json:"message"`
-	Route           string          `json:"route"`
-	InternalMessage *string         `json:"internalMessage"`
-	ResponseID      string          `json:"responseId"`
-	Payload         json.RawMessage `json:"payload"`
-}
-
 // RefundRequest represents parameters for refund operation
 type RefundRequest struct {
 	Amount  float64 `json:"amount"`
@@ -143,6 +134,26 @@ type AutoPayRequest struct {
 	Description string    `json:"description"`
 	CallbackURL string    `json:"callbackUrl"`
 	Operation   Operation `json:"operation"`
+}
+
+// Response represents the base API response structure
+type Response struct {
+	Code            string          `json:"code"`
+	Message         string          `json:"message"`
+	Route           string          `json:"route"`
+	InternalMessage *string         `json:"internalMessage"`
+	ResponseID      string          `json:"responseId"`
+	Payload         json.RawMessage `json:"payload"`
+}
+
+// ApiResponse represents a generic API response with typed payload
+type ApiResponse[T any] struct {
+	Code            string  `json:"code"`
+	Message         string  `json:"message"`
+	Route           string  `json:"route"`
+	InternalMessage *string `json:"internalMessage"`
+	ResponseID      string  `json:"responseId"`
+	Payload         T       `json:"payload"`
 }
 
 // NewSDK creates a new instance of the Payriff SDK
@@ -194,60 +205,105 @@ func (s *SDK) makeRequest(endpoint string, method string, body interface{}) (*Re
 }
 
 // CreateOrder creates a new payment order
-func (s *SDK) CreateOrder(req CreateOrderRequest) (*OrderPayload, error) {
+func (s *SDK) CreateOrder(req CreateOrderRequest) (*ApiResponse[OrderPayload], error) {
 	resp, err := s.makeRequest("/orders", http.MethodPost, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var payload OrderPayload
-	if err := json.Unmarshal(resp.Payload, &payload); err != nil {
+	var result ApiResponse[OrderPayload]
+	if err := json.Unmarshal(resp.Payload, &result.Payload); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal order payload: %w", err)
 	}
 
-	return &payload, nil
+	// Copy response metadata
+	result.Code = resp.Code
+	result.Message = resp.Message
+	result.Route = resp.Route
+	result.InternalMessage = resp.InternalMessage
+	result.ResponseID = resp.ResponseID
+
+	return &result, nil
 }
 
 // GetOrderInfo retrieves information about an existing order
-func (s *SDK) GetOrderInfo(orderID string) (*OrderInfo, error) {
+func (s *SDK) GetOrderInfo(orderID string) (*ApiResponse[OrderInfo], error) {
 	resp, err := s.makeRequest(fmt.Sprintf("/orders/%s", orderID), http.MethodGet, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var orderInfo OrderInfo
-	if err := json.Unmarshal(resp.Payload, &orderInfo); err != nil {
+	var result ApiResponse[OrderInfo]
+	if err := json.Unmarshal(resp.Payload, &result.Payload); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal order info: %w", err)
 	}
 
-	return &orderInfo, nil
+	// Copy response metadata
+	result.Code = resp.Code
+	result.Message = resp.Message
+	result.Route = resp.Route
+	result.InternalMessage = resp.InternalMessage
+	result.ResponseID = resp.ResponseID
+
+	return &result, nil
 }
 
 // Refund initiates a refund for an order
-func (s *SDK) Refund(req RefundRequest) (*Response, error) {
+func (s *SDK) Refund(req RefundRequest) (*ApiResponse[json.RawMessage], error) {
 	resp, err := s.makeRequest("/refund", http.MethodPost, req)
-	return resp, err
+	if err != nil {
+		return nil, err
+	}
+
+	var result ApiResponse[json.RawMessage]
+	result.Payload = resp.Payload
+	result.Code = resp.Code
+	result.Message = resp.Message
+	result.Route = resp.Route
+	result.InternalMessage = resp.InternalMessage
+	result.ResponseID = resp.ResponseID
+
+	return &result, nil
 }
 
 // Complete completes a pre-authorized payment
-func (s *SDK) Complete(req RefundRequest) error {
-	_, err := s.makeRequest("/complete", http.MethodPost, req)
-	return err
+func (s *SDK) Complete(req RefundRequest) (*ApiResponse[json.RawMessage], error) {
+	resp, err := s.makeRequest("/complete", http.MethodPost, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ApiResponse[json.RawMessage]
+	result.Payload = resp.Payload
+	result.Code = resp.Code
+	result.Message = resp.Message
+	result.Route = resp.Route
+	result.InternalMessage = resp.InternalMessage
+	result.ResponseID = resp.ResponseID
+
+	return &result, nil
 }
 
 // AutoPay processes an automatic payment using saved card details
-func (s *SDK) AutoPay(req AutoPayRequest) (*OrderInfo, error) {
+func (s *SDK) AutoPay(req AutoPayRequest) (*ApiResponse[OrderInfo], error) {
 	resp, err := s.makeRequest("/autoPay", http.MethodPost, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var orderInfo OrderInfo
-	if err := json.Unmarshal(resp.Payload, &orderInfo); err != nil {
+	var result ApiResponse[OrderInfo]
+	if err := json.Unmarshal(resp.Payload, &result.Payload); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal order info: %w", err)
 	}
 
-	return &orderInfo, nil
+	// Copy response metadata
+	result.Code = resp.Code
+	result.Message = resp.Message
+	result.Route = resp.Route
+	result.InternalMessage = resp.InternalMessage
+	result.ResponseID = resp.ResponseID
+
+	return &result, nil
 }
 
 // IsSuccessful checks if an operation was successful based on the response code
