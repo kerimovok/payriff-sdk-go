@@ -61,17 +61,6 @@ const (
 	OperationPreAuth  Operation = "PRE_AUTH"
 )
 
-// CreateOrderRequest represents parameters for creating a new order
-type CreateOrderRequest struct {
-	Amount      float64   `json:"amount"`
-	Language    Language  `json:"language"`
-	Currency    Currency  `json:"currency"`
-	Description string    `json:"description"`
-	CallbackURL string    `json:"callbackUrl"`
-	CardSave    bool      `json:"cardSave"`
-	Operation   Operation `json:"operation"`
-}
-
 // OrderPayload represents the response payload for order creation
 type OrderPayload struct {
 	OrderID       string `json:"orderId"`
@@ -120,8 +109,25 @@ type OrderInfo struct {
 	Transactions  []Transaction `json:"transactions"`
 }
 
+// CreateOrderRequest represents parameters for creating a new order
+type CreateOrderRequest struct {
+	Amount      float64   `json:"amount"`
+	Language    Language  `json:"language"`
+	Currency    Currency  `json:"currency"`
+	Description string    `json:"description"`
+	CallbackURL string    `json:"callbackUrl"`
+	CardSave    bool      `json:"cardSave"`
+	Operation   Operation `json:"operation"`
+}
+
 // RefundRequest represents parameters for refund operation
 type RefundRequest struct {
+	Amount  float64 `json:"amount"`
+	OrderID string  `json:"orderId"`
+}
+
+// CompleteRequest represents parameters for complete operation
+type CompleteRequest struct {
 	Amount  float64 `json:"amount"`
 	OrderID string  `json:"orderId"`
 }
@@ -267,21 +273,13 @@ func (s *SDK) Refund(req RefundRequest) (*ApiResponse[json.RawMessage], error) {
 }
 
 // Complete completes a pre-authorized payment
-func (s *SDK) Complete(req RefundRequest) (*ApiResponse[json.RawMessage], error) {
-	resp, err := s.makeRequest("/complete", http.MethodPost, req)
+func (s *SDK) Complete(req CompleteRequest) error {
+	_, err := s.makeRequest("/complete", http.MethodPost, req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var result ApiResponse[json.RawMessage]
-	result.Payload = resp.Payload
-	result.Code = resp.Code
-	result.Message = resp.Message
-	result.Route = resp.Route
-	result.InternalMessage = resp.InternalMessage
-	result.ResponseID = resp.ResponseID
-
-	return &result, nil
+	return nil
 }
 
 // AutoPay processes an automatic payment using saved card details
