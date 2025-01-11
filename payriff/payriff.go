@@ -111,7 +111,7 @@ type OrderInfo struct {
 	CurrencyType  Currency      `json:"currencyType"`
 	MerchantName  string        `json:"merchantName"`
 	OperationType Operation     `json:"operationType"`
-	PaymentStatus string        `json:"paymentStatus"`
+	PaymentStatus Status        `json:"paymentStatus"`
 	Auto          bool          `json:"auto"`
 	CreatedDate   string        `json:"createdDate"`
 	Description   string        `json:"description"`
