@@ -64,10 +64,15 @@ const (
 )
 
 const (
-	StatusApproved Status = "APPROVED"
-	StatusDeclined Status = "DECLINED"
-	StatusCanceled Status = "CANCELED"
-	StatusExpired  Status = "EXPIRED"
+	StatusCreated         Status = "CREATED"
+	StatusApproved        Status = "APPROVED"
+	StatusCanceled        Status = "CANCELED"
+	StatusDeclined        Status = "DECLINED"
+	StatusRefunded        Status = "REFUNDED"
+	StatusPreAuthApproved Status = "PREAUTH_APPROVED"
+	StatusExpired         Status = "EXPIRED"
+	StatusReverse         Status = "REVERSE"
+	StatusPartialRefund   Status = "PARTIAL_REFUND"
 )
 
 // OrderPayload represents the response payload for order creation
