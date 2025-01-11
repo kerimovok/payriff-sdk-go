@@ -44,6 +44,8 @@ type Currency string
 // Operation represents supported payment operations
 type Operation string
 
+type Status string
+
 const (
 	LanguageAZ Language = "AZ"
 	LanguageEN Language = "EN"
@@ -59,6 +61,13 @@ const (
 const (
 	OperationPurchase Operation = "PURCHASE"
 	OperationPreAuth  Operation = "PRE_AUTH"
+)
+
+const (
+	StatusApproved Status = "APPROVED"
+	StatusDeclined Status = "DECLINED"
+	StatusCanceled Status = "CANCELED"
+	StatusExpired  Status = "EXPIRED"
 )
 
 // OrderPayload represents the response payload for order creation
@@ -79,7 +88,7 @@ type CardDetails struct {
 type Transaction struct {
 	UUID             string      `json:"uuid"`
 	CreatedDate      string      `json:"createdDate"`
-	Status           string      `json:"status"`
+	Status           Status      `json:"status"`
 	Channel          string      `json:"channel"`
 	ChannelType      string      `json:"channelType"`
 	RequestRRN       string      `json:"requestRrn"`
