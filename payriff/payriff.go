@@ -107,20 +107,23 @@ type Transaction struct {
 		Type   *string `json:"type"`
 		Period *string `json:"period"`
 	} `json:"installment"`
+	DeliveryAddress *string `json:"deliveryAddress"`
 }
 
 // OrderInfo represents detailed order information
 type OrderInfo struct {
-	OrderID       string        `json:"orderId"`
-	Amount        float64       `json:"amount"`
-	CurrencyType  Currency      `json:"currencyType"`
-	MerchantName  string        `json:"merchantName"`
-	OperationType Operation     `json:"operationType"`
-	PaymentStatus Status        `json:"paymentStatus"`
-	Auto          bool          `json:"auto"`
-	CreatedDate   string        `json:"createdDate"`
-	Description   string        `json:"description"`
-	Transactions  []Transaction `json:"transactions"`
+	OrderID        string        `json:"orderId"`
+	InvoiceUUID    *string       `json:"invoiceUuid"`
+	Amount         float64       `json:"amount"`
+	CurrencyType   Currency      `json:"currencyType"`
+	MerchantName   string        `json:"merchantName"`
+	CommissionRate *float64      `json:"commissionRate,omitempty"`
+	OperationType  Operation     `json:"operationType"`
+	PaymentStatus  Status        `json:"paymentStatus"`
+	Auto           bool          `json:"auto"`
+	CreatedDate    string        `json:"createdDate"`
+	Description    string        `json:"description"`
+	Transactions   []Transaction `json:"transactions,omitempty"`
 }
 
 // CreateOrderRequest represents parameters for creating a new order
