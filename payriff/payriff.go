@@ -8,31 +8,23 @@ import (
 	"os"
 )
 
-// Constants for API result codes
-const (
-	ResultCodeSuccess           = "00000"
-	ResultCodeSuccessGateway    = "00"
-	ResultCodeSuccessApprove    = "APPROVED"
-	ResultCodeSuccessPreauth    = "PREAUTH-APPROVED"
-	ResultCodeWarning           = "01000"
-	ResultCodeError             = "15000"
-	ResultCodeInvalidParameters = "15400"
-	ResultCodeUnauthorized      = "14010"
-	ResultCodeTokenNotPresent   = "14013"
-	ResultCodeInvalidToken      = "14014"
-)
-
 // Config holds the configuration for the Payriff SDK
 type Config struct {
-	BaseURL   string
-	SecretKey string
+	BaseURL            string
+	SecretKey          string
+	DefaultCallbackURL string
+	DefaultLanguage    Language
+	DefaultCurrency    Currency
 }
 
 // SDK represents the Payriff payment gateway client
 type SDK struct {
-	baseURL   string
-	secretKey string
-	client    *http.Client
+	baseURL            string
+	secretKey          string
+	defaultCallbackURL string
+	defaultLanguage    Language
+	defaultCurrency    Currency
+	client             *http.Client
 }
 
 // Language represents supported language codes
@@ -44,7 +36,11 @@ type Currency string
 // Operation represents supported payment operations
 type Operation string
 
+// Status represents supported payment statuses
 type Status string
+
+// ResultCode represents the possible API result codes
+type ResultCode string
 
 const (
 	LanguageAZ Language = "AZ"
@@ -73,6 +69,19 @@ const (
 	StatusExpired         Status = "EXPIRED"
 	StatusReverse         Status = "REVERSE"
 	StatusPartialRefund   Status = "PARTIAL_REFUND"
+)
+
+const (
+	ResultCodeSuccess           ResultCode = "00000"
+	ResultCodeSuccessGateway    ResultCode = "00"
+	ResultCodeSuccessApprove    ResultCode = "APPROVED"
+	ResultCodeSuccessPreauth    ResultCode = "PREAUTH-APPROVED"
+	ResultCodeWarning           ResultCode = "01000"
+	ResultCodeError             ResultCode = "15000"
+	ResultCodeInvalidParameters ResultCode = "15400"
+	ResultCodeUnauthorized      ResultCode = "14010"
+	ResultCodeTokenNotPresent   ResultCode = "14013"
+	ResultCodeInvalidToken      ResultCode = "14014"
 )
 
 // OrderPayload represents the response payload for order creation
@@ -129,12 +138,12 @@ type OrderInfo struct {
 // CreateOrderRequest represents parameters for creating a new order
 type CreateOrderRequest struct {
 	Amount      float64   `json:"amount"`
-	Language    Language  `json:"language"`
-	Currency    Currency  `json:"currency"`
 	Description string    `json:"description"`
-	CallbackURL string    `json:"callbackUrl"`
-	CardSave    bool      `json:"cardSave"`
 	Operation   Operation `json:"operation"`
+	CardSave    bool      `json:"cardSave"`
+	Language    Language  `json:"language,omitempty"`
+	Currency    Currency  `json:"currency,omitempty"`
+	CallbackURL string    `json:"callbackUrl,omitempty"`
 }
 
 // RefundRequest represents parameters for refund operation
@@ -153,15 +162,15 @@ type CompleteRequest struct {
 type AutoPayRequest struct {
 	CardUUID    string    `json:"cardUuid"`
 	Amount      float64   `json:"amount"`
-	Currency    Currency  `json:"currency"`
 	Description string    `json:"description"`
-	CallbackURL string    `json:"callbackUrl"`
 	Operation   Operation `json:"operation"`
+	Currency    Currency  `json:"currency,omitempty"`
+	CallbackURL string    `json:"callbackUrl,omitempty"`
 }
 
 // Response represents the base API response structure
 type Response struct {
-	Code            string          `json:"code"`
+	Code            ResultCode      `json:"code"`
 	Message         string          `json:"message"`
 	Route           string          `json:"route"`
 	InternalMessage *string         `json:"internalMessage"`
@@ -171,28 +180,48 @@ type Response struct {
 
 // ApiResponse represents a generic API response with typed payload
 type ApiResponse[T any] struct {
-	Code            string  `json:"code"`
-	Message         string  `json:"message"`
-	Route           string  `json:"route"`
-	InternalMessage *string `json:"internalMessage"`
-	ResponseID      string  `json:"responseId"`
-	Payload         T       `json:"payload"`
+	Code            ResultCode `json:"code"`
+	Message         string     `json:"message"`
+	Route           string     `json:"route"`
+	InternalMessage *string    `json:"internalMessage"`
+	ResponseID      string     `json:"responseId"`
+	Payload         T          `json:"payload"`
 }
 
 // NewSDK creates a new instance of the Payriff SDK
 func NewSDK(config Config) *SDK {
+	// Set default base URL
 	if config.BaseURL == "" {
 		config.BaseURL = "https://api.payriff.com/api/v3"
 	}
 
+	// Set default secret key from environment
 	if config.SecretKey == "" {
 		config.SecretKey = os.Getenv("PAYRIFF_SECRET_KEY")
 	}
 
+	// Set default callback URL from environment
+	if config.DefaultCallbackURL == "" {
+		config.DefaultCallbackURL = os.Getenv("PAYRIFF_CALLBACK_URL")
+	}
+
+	// Set default language
+	if config.DefaultLanguage == "" {
+		config.DefaultLanguage = LanguageAZ
+	}
+
+	// Set default currency
+	if config.DefaultCurrency == "" {
+		config.DefaultCurrency = CurrencyAZN
+	}
+
 	return &SDK{
-		baseURL:   config.BaseURL,
-		secretKey: config.SecretKey,
-		client:    &http.Client{},
+		baseURL:            config.BaseURL,
+		secretKey:          config.SecretKey,
+		defaultCallbackURL: config.DefaultCallbackURL,
+		defaultLanguage:    config.DefaultLanguage,
+		defaultCurrency:    config.DefaultCurrency,
+		client:             &http.Client{},
 	}
 }
 
@@ -229,6 +258,17 @@ func (s *SDK) makeRequest(endpoint string, method string, body interface{}) (*Re
 
 // CreateOrder creates a new payment order
 func (s *SDK) CreateOrder(req CreateOrderRequest) (*ApiResponse[OrderPayload], error) {
+	// Apply defaults if values are not provided
+	if req.Language == "" {
+		req.Language = s.defaultLanguage
+	}
+	if req.Currency == "" {
+		req.Currency = s.defaultCurrency
+	}
+	if req.CallbackURL == "" {
+		req.CallbackURL = s.defaultCallbackURL
+	}
+
 	resp, err := s.makeRequest("/orders", http.MethodPost, req)
 	if err != nil {
 		return nil, err
@@ -301,6 +341,14 @@ func (s *SDK) Complete(req CompleteRequest) error {
 
 // AutoPay processes an automatic payment using saved card details
 func (s *SDK) AutoPay(req AutoPayRequest) (*ApiResponse[OrderInfo], error) {
+	// Apply defaults if values are not provided
+	if req.Currency == "" {
+		req.Currency = s.defaultCurrency
+	}
+	if req.CallbackURL == "" {
+		req.CallbackURL = s.defaultCallbackURL
+	}
+
 	resp, err := s.makeRequest("/autoPay", http.MethodPost, req)
 	if err != nil {
 		return nil, err
@@ -322,6 +370,6 @@ func (s *SDK) AutoPay(req AutoPayRequest) (*ApiResponse[OrderInfo], error) {
 }
 
 // IsSuccessful checks if an operation was successful based on the response code
-func (s *SDK) IsSuccessful(code string) bool {
+func (s *SDK) IsSuccessful(code ResultCode) bool {
 	return code == ResultCodeSuccess || code == ResultCodeSuccessGateway
 }
