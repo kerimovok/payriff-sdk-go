@@ -139,8 +139,8 @@ type OrderInfo struct {
 type CreateOrderRequest struct {
 	Amount      float64   `json:"amount"`
 	Description string    `json:"description"`
-	Operation   Operation `json:"operation"`
 	CardSave    bool      `json:"cardSave"`
+	Operation   Operation `json:"operation,omitempty"`
 	Language    Language  `json:"language,omitempty"`
 	Currency    Currency  `json:"currency,omitempty"`
 	CallbackURL string    `json:"callbackUrl,omitempty"`
@@ -163,7 +163,7 @@ type AutoPayRequest struct {
 	CardUUID    string    `json:"cardUuid"`
 	Amount      float64   `json:"amount"`
 	Description string    `json:"description"`
-	Operation   Operation `json:"operation"`
+	Operation   Operation `json:"operation,omitempty"`
 	Currency    Currency  `json:"currency,omitempty"`
 	CallbackURL string    `json:"callbackUrl,omitempty"`
 }
@@ -268,6 +268,9 @@ func (s *SDK) CreateOrder(req CreateOrderRequest) (*ApiResponse[OrderPayload], e
 	if req.CallbackURL == "" {
 		req.CallbackURL = s.defaultCallbackURL
 	}
+	if req.Operation == "" {
+		req.Operation = OperationPurchase
+	}
 
 	resp, err := s.makeRequest("/orders", http.MethodPost, req)
 	if err != nil {
@@ -347,6 +350,9 @@ func (s *SDK) AutoPay(req AutoPayRequest) (*ApiResponse[OrderInfo], error) {
 	}
 	if req.CallbackURL == "" {
 		req.CallbackURL = s.defaultCallbackURL
+	}
+	if req.Operation == "" {
+		req.Operation = OperationPurchase
 	}
 
 	resp, err := s.makeRequest("/autoPay", http.MethodPost, req)

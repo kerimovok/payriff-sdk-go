@@ -17,7 +17,13 @@ Initialize the SDK with your merchant credentials:
 ```go
 import "github.com/kerimovok/payriff-sdk-go/payriff"
 
-payriff := payriff.NewSDK(payriff.Config{})
+// Uses environment variables and default values:
+// - PAYRIFF_SECRET_KEY for secret key
+// - PAYRIFF_CALLBACK_URL for callback URL
+// - "AZ" for language
+// - "AZN" for currency
+// - "https://api.payriff.com/api/v3" for base URL
+sdk := payriff.NewSDK(payriff.Config{})
 ```
 
 ### Custom Configuration
@@ -25,11 +31,12 @@ payriff := payriff.NewSDK(payriff.Config{})
 ```go
 import "github.com/kerimovok/payriff-sdk-go/payriff"
 
-payriff := payriff.NewSDK(payriff.Config{
-	// optional, defaults to https://api.payriff.com/api/v3
-	BaseURL: "https://api.payriff.com/api/v3",
-	// optional, defaults to PAYRIFF_SECRET_KEY environment variable
-	SecretKey: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+sdk := payriff.NewSDK(payriff.Config{
+	BaseURL:            "https://api.payriff.com/api/v3",
+	SecretKey:          "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+	DefaultCallbackURL: "https://example.com/webhook",
+	DefaultLanguage:    payriff.LanguageEN,
+	DefaultCurrency:    payriff.CurrencyUSD,
 })
 ```
 
@@ -39,15 +46,27 @@ payriff := payriff.NewSDK(payriff.Config{
 
 Create a new payment order:
 
+#### With defaults
+
 ```go
-order, err := payriff.CreateOrder(payriff.CreateOrderRequest{
+order, err := sdk.CreateOrder(payriff.CreateOrderRequest{
 	Amount:      10.99,
-	Language:    payriff.LanguageEN,
-	Currency:    payriff.CurrencyUSD,
 	Description: "Product purchase",
-	CallbackURL: "https://example.com/webhook",
-	CardSave:    true,
-	Operation: payriff.OperationPurchase,
+	CardSave:    false,
+})
+```
+
+#### With custom options
+
+```go
+order, err := sdk.CreateOrder(payriff.CreateOrderRequest{
+    Amount:      10.99,
+    Description: "Product purchase",
+    CardSave:    false,
+    Operation:   payriff.OperationPurchase,
+    Language:    payriff.LanguageEN,
+    Currency:    payriff.CurrencyUSD,
+    CallbackURL: "https://example.com/custom-webhook",
 })
 ```
 
@@ -85,11 +104,23 @@ err := payriff.Complete(payriff.CompleteRequest{
 
 Process payment using saved card details:
 
+#### With defaults
+
 ```go
 autoPay, err := payriff.AutoPay(payriff.AutoPayRequest{
-	CardUUID: "CARD_UUID",
-	Amount:   10.99,
-	Currency: payriff.CurrencyUSD,
+	CardUUID:    "CARD_UUID",
+	Amount:      10.99,
+	Description: "Subscription renewal",
+})
+```
+
+#### With custom options
+
+```go
+autoPay, err := payriff.AutoPay(payriff.AutoPayRequest{
+	CardUUID:    "CARD_UUID",
+	Amount:      10.99,
+	Currency:    payriff.CurrencyUSD,
 	Description: "Subscription renewal",
 	CallbackURL: "https://example.com/webhook",
 	Operation:   payriff.OperationPurchase,
